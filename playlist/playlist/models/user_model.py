@@ -20,34 +20,31 @@ class Users(db.Model, UserMixin):
     username = db.Column(db.String(80), unique=True, nullable=False)
     salt = db.Column(db.String(32), nullable=False)  # 16-byte salt in hex
     password = db.Column(db.String(64), nullable=False)  # SHA-256 hash in hex
-
+    email = db.Column(db.String(255), unique=True, nullable=True) # nullable if they don't want an email attached
+    pinCode = db.Column(db.String(4), nullable=False)
+    
     @staticmethod
     def _generate_hashed_password(password: str) -> tuple[str, str]:
         """
-        Generates a salted, hashed password.
-
-        Args:
-            password (str): The password to hash.
-
-        Returns:
-            tuple: A tuple containing the salt and hashed password.
+            Generates a salted, hashed password.
+            input: password (str): The password to hash.
+            returns: tuple: A tuple containing the salt and hashed password.
         """
+        
         salt = os.urandom(16).hex()
         hashed_password = hashlib.sha256((password + salt).encode()).hexdigest()
         return salt, hashed_password
+        
 
     @classmethod
     def create_user(cls, username: str, password: str) -> None:
         """
-        Create a new user with a salted, hashed password.
-
-        Args:
-            username (str): The username of the user.
-            password (str): The password to hash and store.
-
-        Raises:
-            ValueError: If a user with the username already exists.
+            Create a new user with a salted, hashed password.
+            inputs: username (str): The username of the user.
+                    password (str): The password to hash and store.
+            raises: ValueError: If a user with the username already exists.
         """
+        
         salt, hashed_password = cls._generate_hashed_password(password)
         new_user = cls(username=username, salt=salt, password=hashed_password)
         try:
@@ -67,17 +64,12 @@ class Users(db.Model, UserMixin):
     def check_password(cls, username: str, password: str) -> bool:
         """
         Check if a given password matches the stored password for a user.
-
-        Args:
-            username (str): The username of the user.
-            password (str): The password to check.
-
-        Returns:
-            bool: True if the password is correct, False otherwise.
-
-        Raises:
-            ValueError: If the user does not exist.
+        input:  username (str): The username of the user.
+                password (str): The password to check.
+        returns: bool: True if the password is correct, False otherwise.
+        raises: ValueError: If the user does not exist.
         """
+        
         user = cls.query.filter_by(username=username).first()
         if not user:
             logger.info("User %s not found", username)
@@ -89,13 +81,10 @@ class Users(db.Model, UserMixin):
     def delete_user(cls, username: str) -> None:
         """
         Delete a user from the database.
-
-        Args:
-            username (str): The username of the user to delete.
-
-        Raises:
-            ValueError: If the user does not exist.
+        inputs: username (str): The username of the user to delete.
+        raises: ValueError: If the user does not exist.
         """
+        
         user = cls.query.filter_by(username=username).first()
         if not user:
             logger.info("User %s not found", username)
@@ -107,9 +96,7 @@ class Users(db.Model, UserMixin):
     def get_id(self) -> str:
         """
         Get the ID of the user.
-
-        Returns:
-            int: The ID of the user.
+        returns int: The ID of the user.
         """
         return self.username
 
@@ -117,16 +104,11 @@ class Users(db.Model, UserMixin):
     def get_id_by_username(cls, username: str) -> int:
         """
         Retrieve the ID of a user by username.
-
-        Args:
-            username (str): The username of the user.
-
-        Returns:
-            int: The ID of the user.
-
-        Raises:
-            ValueError: If the user does not exist.
+        inputs: username (str): The username of the user.
+        returns: int: The ID of the user.
+        raises: ValueError: If the user does not exist.
         """
+        
         user = cls.query.filter_by(username=username).first()
         if not user:
             logger.info("User %s not found", username)
@@ -137,14 +119,11 @@ class Users(db.Model, UserMixin):
     def update_password(cls, username: str, new_password: str) -> None:
         """
         Update the password for a user.
-
-        Args:
-            username (str): The username of the user.
-            new_password (str): The new password to set.
-
-        Raises:
-            ValueError: If the user does not exist.
+        inputs: username (str): The username of the user.
+                new_password (str): The new password to set.
+        raises: ValueError: If the user does not exist.
         """
+        
         user = cls.query.filter_by(username=username).first()
         if not user:
             logger.info("User %s not found", username)
@@ -155,3 +134,105 @@ class Users(db.Model, UserMixin):
         user.password = hashed_password
         db.session.commit()
         logger.info("Password updated successfully for user: %s", username)
+
+    @classmethod
+    def set_default_pincode(cls, username: str) -> None:
+        """
+            sets pincode to default
+            inputs: username (str): The username of the user
+            raises: ValueError: If the user does not exist.
+        """
+        
+        user = cls.query.filter_by(username=username).first()
+        if not user:
+            logger.info("User %s not found", username)
+            raise ValueError(f"User {username} not found")
+    
+        logger.info("Your pincode has be set to 0000 by default.")
+        user.pincode = "0000"
+        db.session.commit()
+
+    @classmethod
+    def update_pincode(cls, username: str, pincode: str) -> None:
+        """
+            sets pincode to default
+            inputs: username (str): The username of the user
+                    pincode (str): The pincode of the user
+            raises: ValueError: If the user does not exist.
+        """
+        
+        user = cls.query.filter_by(username=username).first()
+        if not user:
+            logger.info("User %s not found", username)
+            raise ValueError(f"User {username} not found")
+        user.pincode = pincode
+        db.session.commit()
+        logger.info(f"Pincode successfully updated to {pincode} for user: %s")
+        
+    
+    @classmethod
+    def check_pincode(cls, username: str, pincode: str) -> bool:
+        """
+        Check if a given pincode matches the stored pincode for a user.
+        input:  username (str): The username of the user.
+                pincode (str): The pincode to check.
+        returns: bool: True if the password is correct, False otherwise.
+        raises: ValueError: If the user does not exist.
+        """
+        
+        user = cls.query.filter_by(username=username).first()
+        if not user:
+            logger.info("User %s not found", username)
+            raise ValueError(f"User {username} not found")
+        return user.pincode == pincode
+
+    
+    
+    
+    @classmethod
+    def set_default_email(cls, username: str) -> None:
+        """
+            sets email to none for user to update it
+            input: username (str): The username of the user
+            raises: ValueError is user doesn't exist
+        """
+
+        user = cls.query.filter_by(username=username).first()
+        if not user:
+            logger.info("User %s was not found", username)
+            raise ValueError(f"User {username} was not found")
+
+        user.email = None
+    
+    @classmethod
+    def check_email(cls, username: str, email: str) -> bool:
+        """
+            check if a given email matches the stored email for a user
+            input:  username (str): The username of the user
+                    email (str): The email of the user
+            output: bool (true if they match false otherwise
+            raises: ValueError: If the user doesn't exist
+        """
+
+        user = cls.query.filter_by(username=username).first()
+        if not user:
+            logger.info("User %s was not found", username)
+            raise ValueError(f"User {username} was not found")
+        
+        return user.email == email
+
+    def update_email(cls, username: str, email: str) -> None:
+        """
+            update the current email to a new email
+            input:  username (str): The username of the user
+                    email (str): The email of the user
+            raises: ValueError if the user doesn't exist
+        """
+        user = cls.query.filter_by(username=username).first()
+        if not user:
+            logger.info("User %s not found", username)
+            raise ValueError(f"User {username} wasn't found")
+
+        user.email = email
+        db.session.commit()
+        
