@@ -11,34 +11,29 @@ logger = logging.getLogger(__name__)
 configure_logger(logger)
 
 
-class Songs(db.Model):
-    """Represents a song in the catalog.
+class Movies(db.Model):
+    """Represents a Movie in the catalog.
 
-    This model maps to the 'songs' table and stores metadata such as artist,
-    title, genre, release year, and duration. It also tracks play count.
+    This model maps to the 'movies' table and stores metadata such as
+    title, genre, release year, and duration.
 
     Used in a Flask-SQLAlchemy application for playlist management,
     user interaction, and data-driven song operations.
     """
 
-    __tablename__ = "Songs"
+    __tablename__ = "Movies"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    artist = db.Column(db.String, nullable=False)
     title = db.Column(db.String, nullable=False)
     year = db.Column(db.Integer, nullable=False)
     genre = db.Column(db.String, nullable=False)
     duration = db.Column(db.Integer, nullable=False)
-    play_count = db.Column(db.Integer, nullable=False, default=0)
 
     def validate(self) -> None:
-        """Validates the song instance before committing to the database.
-
-        Raises:
-            ValueError: If any required fields are invalid.
         """
-        if not self.artist or not isinstance(self.artist, str):
-            raise ValueError("Artist must be a non-empty string.")
+            Validates the moivie instance before committing to the database.
+            raises ValueError: If any required fields are invalid.
+        """
         if not self.title or not isinstance(self.title, str):
             raise ValueError("Title must be a non-empty string.")
         if not isinstance(self.year, int) or self.year <= 1900:
@@ -49,109 +44,95 @@ class Songs(db.Model):
             raise ValueError("Duration must be a positive integer.")
 
     @classmethod
-    def create_song(cls, artist: str, title: str, year: int, genre: str, duration: int) -> None:
+    def create_song(cls, title: str, year: int, genre: str, duration: int) -> None:
         """
-        Creates a new song in the songs table using SQLAlchemy.
+            Creates a new movie in the songs table using SQLAlchemy.
 
-        Args:
-            artist (str): The artist's name.
-            title (str): The song title.
-            year (int): The year the song was released.
-            genre (str): The song genre.
-            duration (int): The duration of the song in seconds.
-
-        Raises:
-            ValueError: If any field is invalid or if a song with the same compound key already exists.
+            input:  title (str): The movie title.
+                    year (int): The year the movie was released.
+                    genre (str): The movies genre.
+                    duration (int): The duration of the movie in minutes.
+            raises: ValueError: If any field is invalid or if a movie with the same compound key already exists.
             SQLAlchemyError: For any other database-related issues.
         """
-        logger.info(f"Received request to create song: {artist} - {title} ({year})")
+        logger.info(f"Received request to create movie: {title} ({year})")
 
         try:
-            song = Songs(
-                artist=artist.strip(),
+            movie = Movies(
                 title=title.strip(),
                 year=year,
                 genre=genre.strip(),
                 duration=duration
             )
-            song.validate()
+            movie.validate()
         except ValueError as e:
             logger.warning(f"Validation failed: {e}")
             raise
 
         try:
             # Check for existing song with same compound key (artist, title, year)
-            existing = Songs.query.filter_by(artist=artist.strip(), title=title.strip(), year=year).first()
+            existing = Movies.query.filter_by(title=title.strip(), year=year).first()
             if existing:
-                logger.error(f"Song already exists: {artist} - {title} ({year})")
-                raise ValueError(f"Song with artist '{artist}', title '{title}', and year {year} already exists.")
+                logger.error(f"Movie already exists: {title} ({year})")
+                raise ValueError(f"Movie with title '{title}' and year {year} already exists.")
 
-            db.session.add(song)
+            db.session.add(movie)
             db.session.commit()
-            logger.info(f"Song successfully added: {artist} - {title} ({year})")
+            logger.info(f"Movie successfully added: {artist} - {title} ({year})")
 
         except IntegrityError:
-            logger.error(f"Song already exists: {artist} - {title} ({year})")
+            logger.error(f"Movie already exists: title} ({year})")
             db.session.rollback()
-            raise ValueError(f"Song with artist '{artist}', title '{title}', and year {year} already exists.")
+            raise ValueError(f"Song with title '{title}' and year {year} already exists.")
 
         except SQLAlchemyError as e:
-            logger.error(f"Database error while creating song: {e}")
+            logger.error(f"Database error while creating movie: {e}")
             db.session.rollback()
             raise
 
     @classmethod
-    def delete_song(cls, song_id: int) -> None:
+    def delete_song(cls, movie_id: int) -> None:
         """
-        Permanently deletes a song from the catalog by ID.
-
-        Args:
-            song_id (int): The ID of the song to delete.
-
-        Raises:
-            ValueError: If the song with the given ID does not exist.
+            Permanently deletes a movie from the catalog by ID.
+    
+            input: movie_id (int): The ID of the movie to delete.
+            raises: ValueError: If the movie with the given ID does not exist.
             SQLAlchemyError: For any database-related issues.
-        """
-        logger.info(f"Received request to delete song with ID {song_id}")
+            """
+            logger.info(f"Received request to delete song with ID {movie_id}")
 
         try:
-            song = cls.query.get(song_id)
-            if not song:
-                logger.warning(f"Attempted to delete non-existent song with ID {song_id}")
-                raise ValueError(f"Song with ID {song_id} not found")
+            movie = cls.query.get(movie_id)
+            if not movie:
+                logger.warning(f"Attempted to delete non-existent movie with ID {movie_id}")
+                raise ValueError(f"Movie with ID {movie_id} not found")
 
-            db.session.delete(song)
+            db.session.delete(movie_id)
             db.session.commit()
-            logger.info(f"Successfully deleted song with ID {song_id}")
+            logger.info(f"Successfully deleted song with ID {movie_id}")
 
         except SQLAlchemyError as e:
-            logger.error(f"Database error while deleting song with ID {song_id}: {e}")
+            logger.error(f"Database error while deleting movie with ID {movie_id}: {e}")
             db.session.rollback()
             raise
 
     @classmethod
-    def get_song_by_id(cls, song_id: int) -> "Songs":
+    def get_song_by_id(cls, movie_id: int) -> "Movies":
         """
-        Retrieves a song from the catalog by its ID.
-
-        Args:
-            song_id (int): The ID of the song to retrieve.
-
-        Returns:
-            Songs: The song instance corresponding to the ID.
-
-        Raises:
-            ValueError: If no song with the given ID is found.
-            SQLAlchemyError: If a database error occurs.
+        Retrieves a movie from the catalog by its ID.
+        input: movie_id (int): The ID of the movie to retrieve.
+        returns: Movies: The movie instance corresponding to the ID.
+        raises: ValueError: If no movie with the given ID is found.
+                SQLAlchemyError: If a database error occurs.
         """
-        logger.info(f"Attempting to retrieve song with ID {song_id}")
+        logger.info(f"Attempting to retrieve movie with ID {movie_id}")
 
         try:
-            song = cls.query.get(song_id)
+            movie = cls.query.get(movie_id)
 
-            if not song:
-                logger.info(f"Song with ID {song_id} not found")
-                raise ValueError(f"Song with ID {song_id} not found")
+            if not movie:
+                logger.info(f"Song with ID {movie_id} not found")
+                raise ValueError(f"Song with ID {movie_id} not found")
 
             logger.info(f"Successfully retrieved song: {song.artist} - {song.title} ({song.year})")
             return song
