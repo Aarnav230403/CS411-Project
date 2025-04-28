@@ -58,3 +58,11 @@ def get_random(max: int) -> int:
     except requests.exceptions.RequestException as e:
         logger.error(f"Request to random.org failed: {e}")
         raise RuntimeError(f"Request to random.org failed: {e}")
+    
+def search_movies(query):
+    """Dummy search_movies function for now."""
+    return [
+        {"movie_id": "1", "movie_title": "Dummy Movie 1"},
+        {"movie_id": "2", "movie_title": "Dummy Movie 2"}
+    ]
+

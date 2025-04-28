@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, make_response
 from flask_login import login_required, current_user
-from playlist.utils.logger import configure_logger
+from catalog.utils.logger import configure_logger
 
 movie_bp = Blueprint('movie', __name__)
 
@@ -83,7 +83,7 @@ def delete_favorite():
         "message": f"Movie with ID {movie_id} removed from favorites"
     }), 200)
 
-from playlist.utils.api_utils import search_movies
+from catalog.utils.api_utils import search_movies
 @movie_bp.route('/search-movies', methods=['GET'])
 @login_required
 def search_movies_route():
