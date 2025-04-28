@@ -10,6 +10,17 @@ from playlist.utils.logger import configure_logger
 
 from routes.movie_routes import movie_bp  
 
+from flask import Flask
+from routes.movies import movies_bp
+
+app = Flask(__name__)
+
+# Register the blueprint
+app.register_blueprint(movies_bp, url_prefix='/movies')
+
+# Example: now /movies/search?query=batman will work
+
+
 load_dotenv()
 
 def create_app(config_class=ProductionConfig) -> Flask:
