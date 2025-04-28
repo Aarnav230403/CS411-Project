@@ -299,7 +299,6 @@ def create_app(config_class=ProductionConfig) -> Flask:
         """Route to add a new movie to the catalog.
 
         Expected JSON Input:
-            - artist (str): The artist's name.
             - title (str): The movie title.
             - year (int): The year the movie was released.
             - genre (str): The genre of the movie.
@@ -318,7 +317,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
         try:
             data = request.get_json()
 
-            required_fields = ["artist", "title", "year", "genre", "duration"]
+            required_fields = ["title", "year", "genre", "duration"]
             missing_fields = [field for field in required_fields if field not in data]
 
             if missing_fields:
@@ -328,14 +327,12 @@ def create_app(config_class=ProductionConfig) -> Flask:
                     "message": f"Missing required fields: {', '.join(missing_fields)}"
                 }), 400)
 
-            artist = data["artist"]
             title = data["title"]
             year = data["year"]
             genre = data["genre"]
             duration = data["duration"]
 
             if (
-                not isinstance(artist, str)
                 or not isinstance(title, str)
                 or not isinstance(year, int)
                 or not isinstance(genre, str)
@@ -344,16 +341,16 @@ def create_app(config_class=ProductionConfig) -> Flask:
                 app.logger.warning("Invalid input data types")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": "Invalid input types: artist/title/genre should be strings, year and duration should be integers"
+                    "message": "Invalid input types: title/genre should be strings, year and duration should be integers"
                 }), 400)
 
-            app.logger.info(f"Adding movie: {artist} - {title} ({year}), Genre: {genre}, Duration: {duration}s")
-            Movies.create_movie(artist=artist, title=title, year=year, genre=genre, duration=duration)
+            app.logger.info(f"Adding movie: {title} ({year}), Genre: {genre}, Duration: {duration}s")
+            Movies.create_movie(title=title, year=year, genre=genre, duration=duration)
 
-            app.logger.info(f"Movie added successfully: {artist} - {title}")
+            app.logger.info(f"Movie added successfully: {title}")
             return make_response(jsonify({
                 "status": "success",
-                "message": f"Movie '{title}' by {artist} added successfully"
+                "message": f"Movie '{title}' added successfully"
             }), 201)
 
         except Exception as e:
@@ -477,7 +474,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
                     "message": f"Movie with ID {movie_id} not found"
                 }), 400)
 
-            app.logger.info(f"Successfully retrieved movie: {movie.title} by {movie.artist} (ID {movie_id})")
+            app.logger.info(f"Successfully retrieved movie: {movie.title} (ID {movie_id})")
 
             return make_response(jsonify({
                 "status": "success",
@@ -497,10 +494,9 @@ def create_app(config_class=ProductionConfig) -> Flask:
     @app.route('/api/get-movie-from-catalog-by-compound-key', methods=['GET'])
     @login_required
     def get_movie_by_compound_key() -> Response:
-        """Route to retrieve a movie by its compound key (artist, title, year).
+        """Route to retrieve a movie by its compound key (title, year).
 
         Query Parameters:
-            - artist (str): The artist's name.
             - title (str): The movie title.
             - year (int): The year the movie was released.
 
@@ -513,15 +509,14 @@ def create_app(config_class=ProductionConfig) -> Flask:
 
         """
         try:
-            artist = request.args.get('artist')
             title = request.args.get('title')
             year = request.args.get('year')
 
-            if not artist or not title or not year:
-                app.logger.warning("Missing required query parameters: artist, title, year")
+            if not title or not year:
+                app.logger.warning("Missing required query parameters: title, year")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": "Missing required query parameters: artist, title, year"
+                    "message": "Missing required query parameters: title, year"
                 }), 400)
 
             try:
@@ -533,17 +528,17 @@ def create_app(config_class=ProductionConfig) -> Flask:
                     "message": "Year must be an integer"
                 }), 400)
 
-            app.logger.info(f"Received request to retrieve movie by compound key: {artist}, {title}, {year}")
+            app.logger.info(f"Received request to retrieve movie by compound key: {title}, {year}")
 
-            movie = Movies.get_movie_by_compound_key(artist, title, year)
+            movie = Movies.get_movie_by_compound_key(title, year)
             if not movie:
-                app.logger.warning(f"Movie not found: {artist} - {title} ({year})")
+                app.logger.warning(f"Movie not found: {title} ({year})")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": f"Movie not found: {artist} - {title} ({year})"
+                    "message": f"Movie not found: {title} ({year})"
                 }), 400)
 
-            app.logger.info(f"Successfully retrieved movie: {movie.title} by {movie.artist} ({year})")
+            app.logger.info(f"Successfully retrieved movie: {movie.title} ({year})")
 
             return make_response(jsonify({
                 "status": "success",
@@ -584,7 +579,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
                     "message": "No movies available in the catalog"
                 }), 400)
 
-            app.logger.info(f"Successfully retrieved random movie: {movie.title} by {movie.artist}")
+            app.logger.info(f"Successfully retrieved random movie: {movie.title}")
 
             return make_response(jsonify({
                 "status": "success",
@@ -611,10 +606,9 @@ def create_app(config_class=ProductionConfig) -> Flask:
     @app.route('/api/add-movie-to-catalog', methods=['POST'])
     @login_required
     def add_movie_to_catalog() -> Response:
-        """Route to add a movie to the catalog by compound key (artist, title, year).
+        """Route to add a movie to the catalog by compound key (title, year).
 
         Expected JSON Input:
-            - artist (str): The artist's name.
             - title (str): The movie title.
             - year (int): The year the movie was released.
 
@@ -630,7 +624,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
             app.logger.info("Received request to add movie to catalog")
 
             data = request.get_json()
-            required_fields = ["artist", "title", "year"]
+            required_fields = ["title", "year"]
             missing_fields = [field for field in required_fields if field not in data]
 
             if missing_fields:
@@ -640,7 +634,6 @@ def create_app(config_class=ProductionConfig) -> Flask:
                     "message": f"Missing required fields: {', '.join(missing_fields)}"
                 }), 400)
 
-            artist = data["artist"]
             title = data["title"]
 
             try:
@@ -652,22 +645,22 @@ def create_app(config_class=ProductionConfig) -> Flask:
                     "message": "Year must be a valid integer"
                 }), 400)
 
-            app.logger.info(f"Looking up movie: {artist} - {title} ({year})")
-            movie = Movies.get_movie_by_compound_key(artist, title, year)
+            app.logger.info(f"Looking up movie: {title} ({year})")
+            movie = Movies.get_movie_by_compound_key(title, year)
 
             if not movie:
-                app.logger.warning(f"Movie not found: {artist} - {title} ({year})")
+                app.logger.warning(f"Movie not found: {title} ({year})")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": f"Movie '{title}' by {artist} ({year}) not found in catalog"
+                    "message": f"Movie '{title}' ({year}) not found in catalog"
                 }), 400)
 
             catalog_model.add_movie_to_catalog(movie)
-            app.logger.info(f"Successfully added movie to catalog: {artist} - {title} ({year})")
+            app.logger.info(f"Successfully added movie to catalog: {title} ({year})")
 
             return make_response(jsonify({
                 "status": "success",
-                "message": f"Movie '{title}' by {artist} ({year}) added to catalog"
+                "message": f"Movie '{title}' ({year}) added to catalog"
             }), 201)
 
         except Exception as e:
@@ -682,10 +675,9 @@ def create_app(config_class=ProductionConfig) -> Flask:
     @app.route('/api/remove-movie-from-catalog', methods=['DELETE'])
     @login_required
     def remove_movie_by_movie_id() -> Response:
-        """Route to remove a movie from the catalog by compound key (artist, title, year).
+        """Route to remove a movie from the catalog by compound key (title, year).
 
         Expected JSON Input:
-            - artist (str): The artist's name.
             - title (str): The movie title.
             - year (int): The year the movie was released.
 
@@ -701,7 +693,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
             app.logger.info("Received request to remove movie from catalog")
 
             data = request.get_json()
-            required_fields = ["artist", "title", "year"]
+            required_fields = ["title", "year"]
             missing_fields = [field for field in required_fields if field not in data]
 
             if missing_fields:
@@ -711,7 +703,6 @@ def create_app(config_class=ProductionConfig) -> Flask:
                     "message": f"Missing required fields: {', '.join(missing_fields)}"
                 }), 400)
 
-            artist = data["artist"]
             title = data["title"]
 
             try:
@@ -723,22 +714,22 @@ def create_app(config_class=ProductionConfig) -> Flask:
                     "message": "Year must be a valid integer"
                 }), 400)
 
-            app.logger.info(f"Looking up movie to remove: {artist} - {title} ({year})")
-            movie = Movies.get_movie_by_compound_key(artist, title, year)
+            app.logger.info(f"Looking up movie to remove: {title} ({year})")
+            movie = Movies.get_movie_by_compound_key(title, year)
 
             if not movie:
-                app.logger.warning(f"Movie not found in catalog: {artist} - {title} ({year})")
+                app.logger.warning(f"Movie not found in catalog: {title} ({year})")
                 return make_response(jsonify({
                     "status": "error",
-                    "message": f"Movie '{title}' by {artist} ({year}) not found in catalog"
+                    "message": f"Movie '{title}' ({year}) not found in catalog"
                 }), 400)
 
             catalog_model.remove_movie_by_movie_id(movie.id)
-            app.logger.info(f"Successfully removed movie from catalog: {artist} - {title} ({year})")
+            app.logger.info(f"Successfully removed movie from catalog: {title} ({year})")
 
             return make_response(jsonify({
                 "status": "success",
-                "message": f"Movie '{title}' by {artist} ({year}) removed from catalog"
+                "message": f"Movie '{title}' ({year}) removed from catalog"
             }), 200)
 
         except Exception as e:
@@ -857,14 +848,13 @@ def create_app(config_class=ProductionConfig) -> Flask:
                 }), 404)
 
             catalog_model.play_current_movie()
-            app.logger.info(f"Now playing: {current_movie.artist} - {current_movie.title} ({current_movie.year})")
+            app.logger.info(f"Now playing: {current_movie.title} ({current_movie.year})")
 
             return make_response(jsonify({
                 "status": "success",
                 "message": "Now playing current movie",
                 "movie": {
                     "id": current_movie.id,
-                    "artist": current_movie.artist,
                     "title": current_movie.title,
                     "year": current_movie.year,
                     "genre": current_movie.genre,
@@ -1157,7 +1147,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
 
             movie = catalog_model.get_movie_by_track_number(track_number)
 
-            app.logger.info(f"Successfully retrieved movie: {movie.artist} - {movie.title} (Track {track_number}).")
+            app.logger.info(f"Successfully retrieved movie: {movie.title} (Track {track_number}).")
             return make_response(jsonify({
                 "status": "success",
                 "movie": movie
@@ -1196,7 +1186,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
 
             current_movie = catalog_model.get_current_movie()
 
-            app.logger.info(f"Successfully retrieved current movie: {current_movie.artist} - {current_movie.title}.")
+            app.logger.info(f"Successfully retrieved current movie: {current_movie.title}.")
             return make_response(jsonify({
                 "status": "success",
                 "current_movie": current_movie
@@ -1258,7 +1248,6 @@ def create_app(config_class=ProductionConfig) -> Flask:
         """Move a movie to the beginning of the catalog.
 
         Expected JSON Input:
-            - artist (str): The artist of the movie.
             - title (str): The title of the movie.
             - year (int): The year the movie was released.
 
@@ -1273,7 +1262,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
         try:
             data = request.get_json()
 
-            required_fields = ["artist", "title", "year"]
+            required_fields = ["title", "year"]
             missing_fields = [field for field in required_fields if field not in data]
 
             if missing_fields:
@@ -1283,16 +1272,16 @@ def create_app(config_class=ProductionConfig) -> Flask:
                     "message": f"Missing required fields: {', '.join(missing_fields)}"
                 }), 400)
 
-            artist, title, year = data["artist"], data["title"], data["year"]
-            app.logger.info(f"Received request to move movie to beginning: {artist} - {title} ({year})")
+            title, year = data["title"], data["year"]
+            app.logger.info(f"Received request to move movie to beginning: {title} ({year})")
 
-            movie = Movies.get_movie_by_compound_key(artist, title, year)
+            movie = Movies.get_movie_by_compound_key(title, year)
             catalog_model.move_movie_to_beginning(movie.id)
 
-            app.logger.info(f"Successfully moved movie to beginning: {artist} - {title} ({year})")
+            app.logger.info(f"Successfully moved movie to beginning: {title} ({year})")
             return make_response(jsonify({
                 "status": "success",
-                "message": f"Movie '{title}' by {artist} moved to beginning"
+                "message": f"Movie '{title}' moved to beginning"
             }), 200)
 
         except Exception as e:
@@ -1310,7 +1299,6 @@ def create_app(config_class=ProductionConfig) -> Flask:
         """Move a movie to the end of the catalog.
 
         Expected JSON Input:
-            - artist (str): The artist of the movie.
             - title (str): The title of the movie.
             - year (int): The year the movie was released.
 
@@ -1325,7 +1313,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
         try:
             data = request.get_json()
 
-            required_fields = ["artist", "title", "year"]
+            required_fields = ["title", "year"]
             missing_fields = [field for field in required_fields if field not in data]
 
             if missing_fields:
@@ -1335,16 +1323,16 @@ def create_app(config_class=ProductionConfig) -> Flask:
                     "message": f"Missing required fields: {', '.join(missing_fields)}"
                 }), 400)
 
-            artist, title, year = data["artist"], data["title"], data["year"]
-            app.logger.info(f"Received request to move movie to end: {artist} - {title} ({year})")
+            title, year = data["title"], data["year"]
+            app.logger.info(f"Received request to move movie to end: {title} ({year})")
 
-            movie = Movies.get_movie_by_compound_key(artist, title, year)
+            movie = Movies.get_movie_by_compound_key(title, year)
             catalog_model.move_movie_to_end(movie.id)
 
-            app.logger.info(f"Successfully moved movie to end: {artist} - {title} ({year})")
+            app.logger.info(f"Successfully moved movie to end: {title} ({year})")
             return make_response(jsonify({
                 "status": "success",
-                "message": f"Movie '{title}' by {artist} moved to end"
+                "message": f"Movie '{title}' moved to end"
             }), 200)
 
         except Exception as e:
@@ -1362,7 +1350,6 @@ def create_app(config_class=ProductionConfig) -> Flask:
         """Move a movie to a specific track number in the catalog.
 
         Expected JSON Input:
-            - artist (str): The artist of the movie.
             - title (str): The title of the movie.
             - year (int): The year the movie was released.
             - track_number (int): The new track number to move the movie to.
@@ -1377,7 +1364,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
         try:
             data = request.get_json()
 
-            required_fields = ["artist", "title", "year", "track_number"]
+            required_fields = ["title", "year", "track_number"]
             missing_fields = [field for field in required_fields if field not in data]
 
             if missing_fields:
@@ -1387,16 +1374,16 @@ def create_app(config_class=ProductionConfig) -> Flask:
                     "message": f"Missing required fields: {', '.join(missing_fields)}"
                 }), 400)
 
-            artist, title, year, track_number = data["artist"], data["title"], data["year"], data["track_number"]
-            app.logger.info(f"Received request to move movie to track number {track_number}: {artist} - {title} ({year})")
+            title, year, track_number = data["title"], data["year"], data["track_number"]
+            app.logger.info(f"Received request to move movie to track number {track_number}: {title} ({year})")
 
-            movie = Movies.get_movie_by_compound_key(artist, title, year)
+            movie = Movies.get_movie_by_compound_key(title, year)
             catalog_model.move_movie_to_track_number(movie.id, track_number)
 
-            app.logger.info(f"Successfully moved movie to track {track_number}: {artist} - {title} ({year})")
+            app.logger.info(f"Successfully moved movie to track {track_number}: {title} ({year})")
             return make_response(jsonify({
                 "status": "success",
-                "message": f"Movie '{title}' by {artist} moved to track {track_number}"
+                "message": f"Movie '{title}' moved to track {track_number}"
             }), 200)
 
         except Exception as e:
@@ -1444,10 +1431,10 @@ def create_app(config_class=ProductionConfig) -> Flask:
             movie_2 = catalog_model.get_movie_by_track_number(track_number_2)
             catalog_model.swap_movies_in_catalog(movie_1.id, movie_2.id)
 
-            app.logger.info(f"Successfully swapped movies: {movie_1.artist} - {movie_1.title} <-> {movie_2.artist} - {movie_2.title}")
+            app.logger.info(f"Successfully swapped movies: {movie_1.title} <-> {movie_2.title}")
             return make_response(jsonify({
                 "status": "success",
-                "message": f"Swapped movies: {movie_1.artist} - {movie_1.title} <-> {movie_2.artist} - {movie_2.title}"
+                "message": f"Swapped movies: {movie_1.title} <-> {movie_2.title}"
             }), 200)
 
         except Exception as e:
