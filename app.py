@@ -1,20 +1,14 @@
 from dotenv import load_dotenv
-from flask import Flask, jsonify, make_response, Response, request, redirect
+from flask import Flask, jsonify, make_response, Response, request
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 
 from config import ProductionConfig
 
-from catalog.db import db
-from catalog.models.user_model import Users
-from catalog.utils.logger import configure_logger
+from playlist.db import db
+from playlist.models.user_model import Users
+from playlist.utils.logger import configure_logger
 
 from routes.movie_routes import movie_bp  
-
-from flask import Flask
-from routes.movies import movies_bp
-
-# Example: now /movies/search?query=batman will work
-
 
 load_dotenv()
 
@@ -44,8 +38,12 @@ def create_app(config_class=ProductionConfig) -> Flask:
             "status": "error",
             "message": "Authentication required"
         }), 401)
-    
+
+    # Register blueprints
+    app.register_blueprint(movie_bp)
+
     # Healthcheck
+
     @app.route('/api/health', methods=['GET'])
     def healthcheck() -> Response:
         app.logger.info("Health check endpoint hit")
@@ -53,21 +51,10 @@ def create_app(config_class=ProductionConfig) -> Flask:
             'status': 'success',
             'message': 'Service is running'
         }), 200)
-    
-    
-    # Register the blueprint
-    app.register_blueprint(movies_bp, url_prefix='/movies')
-    app.register_blueprint(movie_bp)
 
     # User Management (KEEP THESE)
 
-
-    @app.route("/", methods=["GET"])
-    def index():
-        return redirect("/movies/search?query=batman")
-    
-
-    # (paste crexate_user, login, logout, change_password, reset_users here unchanged)
+    # (paste create_user, login, logout, change_password, reset_users here unchanged)
     @app.route('/api/create-user', methods=['PUT'])
     def create_user() -> Response:
         """Register a new user account.
@@ -265,4 +252,5 @@ if __name__ == '__main__':
         app.logger.error(f"Flask app encountered an error: {e}")
     finally:
         app.logger.info("Flask app has stopped.")
+
 
