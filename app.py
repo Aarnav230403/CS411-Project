@@ -333,7 +333,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
             duration = data["duration"]
 
             if (
-                or not isinstance(title, str)
+                not isinstance(title, str)
                 or not isinstance(year, int)
                 or not isinstance(genre, str)
                 or not isinstance(duration, int)
