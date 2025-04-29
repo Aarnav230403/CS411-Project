@@ -1,9 +1,8 @@
 import pytest
 
 from app import create_app
-from config import TestingConfig
-from catalog.models.user_model import Users  # optional depending on your tests
-from catalog.sql.create_db import db  # <-- Make sure this is right path to your db object
+from catalog.config import TestConfig  # correct import for TestConfig
+from catalog.db import db  # correct import for db
 
 @pytest.fixture
 def app():
