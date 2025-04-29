@@ -1,7 +1,7 @@
 import pytest
 
 from app import create_app
-from config import TestConfig
+class TestingConfig(ProductionConfig):
 from playlist.db import db
 
 @pytest.fixture
