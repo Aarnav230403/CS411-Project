@@ -13,6 +13,8 @@ from catalog.utils.logger import configure_logger
 
 load_dotenv()
 
+from routes.movie_routes import movie_bp
+
 
 def create_app(config_class=ProductionConfig) -> Flask:
     """Create a Flask application with the specified configuration.
@@ -28,6 +30,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
     configure_logger(app.logger)
 
     app.config.from_object(config_class)
+
 
     # Initialize database
     db.init_app(app)
@@ -1484,6 +1487,8 @@ def create_app(config_class=ProductionConfig) -> Flask:
                 "message": "An internal error occurred while generating the leaderboard",
                 "details": str(e)
             }), 500)
+        
+    app.register_blueprint(movie_bp, url_prefix="/api")
 
     return app
 

@@ -1,16 +1,18 @@
+import uuid
 from flask import Blueprint, jsonify, request, make_response
 from flask_login import login_required, current_user
 from catalog.utils.logger import configure_logger
+from catalog.utils.api_utils import search_movies
 
-movie_bp = Blueprint('movie', __name__)
+movie_bp = Blueprint(f'movie_{uuid.uuid4().hex}', __name__)
+user_favorites = {}  # This will reset per server start – good enough for demo/test purposes
 
-user_favorites = {}
-
+##########################################################
+# Add Favorite
+##########################################################
 @movie_bp.route('/add-favorite', methods=['POST'])
 @login_required
 def add_favorite():
-    """Add a favorite movie for the current user."""
-
     data = request.get_json()
     movie_id = data.get('movie_id')
     movie_title = data.get('movie_title')
@@ -23,11 +25,9 @@ def add_favorite():
 
     username = current_user.username
 
-    # Initialize list if user doesn't exist yet
     if username not in user_favorites:
         user_favorites[username] = []
 
-    # Add movie to the user's favorites
     user_favorites[username].append({
         "movie_id": movie_id,
         "movie_title": movie_title
@@ -38,10 +38,12 @@ def add_favorite():
         "message": f"Movie '{movie_title}' added to favorites"
     }), 201)
 
+##########################################################
+# Get Favorites
+##########################################################
 @movie_bp.route('/get-favorites', methods=['GET'])
 @login_required
 def get_favorites():
-    """Retrieve all favorite movies for the current user."""
     username = current_user.username
     favorites = user_favorites.get(username, [])
 
@@ -50,11 +52,12 @@ def get_favorites():
         "favorites": favorites
     }), 200)
 
+##########################################################
+# Delete Favorite
+##########################################################
 @movie_bp.route('/delete-favorite', methods=['DELETE'])
 @login_required
 def delete_favorite():
-    """Delete a favorite movie by movie_id for the current user."""
-
     data = request.get_json()
     movie_id = data.get('movie_id')
 
@@ -67,7 +70,6 @@ def delete_favorite():
     username = current_user.username
     favorites = user_favorites.get(username, [])
 
-    # Remove the movie if it exists
     updated_favorites = [movie for movie in favorites if movie["movie_id"] != movie_id]
 
     if len(updated_favorites) == len(favorites):
@@ -83,12 +85,12 @@ def delete_favorite():
         "message": f"Movie with ID {movie_id} removed from favorites"
     }), 200)
 
-from catalog.utils.api_utils import search_movies
+##########################################################
+# Search Movies (External)
+##########################################################
 @movie_bp.route('/search-movies', methods=['GET'])
 @login_required
 def search_movies_route():
-    """Search for movies from external API."""
-
     query = request.args.get('query')
 
     if not query:
@@ -98,9 +100,7 @@ def search_movies_route():
         }), 400)
 
     try:
-        # Call teammate's search helper
         results = search_movies(query)
-
         return make_response(jsonify({
             "status": "success",
             "results": results
@@ -113,8 +113,10 @@ def search_movies_route():
             "details": str(e)
         }), 500)
 
-
+##########################################################
+# Basic Movie Details Endpoint (Placeholder)
+##########################################################
 @movie_bp.route('/get-movie/<int:movie_id>', methods=['GET'])
 def get_movie(movie_id):
-    """Retrieve movie details."""
     return jsonify({"message": f"get-movie route hit for ID {movie_id}"}), 200
+

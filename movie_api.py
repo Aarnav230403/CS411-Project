@@ -1,4 +1,8 @@
+from dotenv import load_dotenv
 import os
+load_dotenv()
+
+
 import requests
 import logging
 
@@ -7,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # TMDb API Key (you should load it from your environment or config)
-TMDB_API_KEY = os.getenv('TMDB_API_KEY')
+api_key = os.getenv("TMDB_API_KEY")
 
 # Base URL
 BASE_URL = 'https://api.themoviedb.org/3'

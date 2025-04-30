@@ -1,8 +1,8 @@
 import pytest
-
 from app import create_app
-from catalog.config import TestConfig  # correct import for TestConfig
-from catalog.db import db  # correct import for db
+from catalog.config import TestConfig
+from catalog.db import db
+from catalog.models.user_model import Users  # make sure it's imported
 
 @pytest.fixture
 def app():
@@ -21,3 +21,9 @@ def client(app):
 def session(app):
     with app.app_context():
         yield db.session
+
+@pytest.fixture(autouse=True)
+def clear_users(session):
+    """Automatically clear the users table before every test."""
+    session.query(Users).delete()
+    session.commit()

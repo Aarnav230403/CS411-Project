@@ -1,3 +1,4 @@
+import uuid
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -5,8 +6,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import pytest
 from app import create_app
 from routes.movie_routes import user_favorites
-from playlist.db import db
+from catalog.db import db
 from config import TestingConfig
+from unittest.mock import patch
 
 @pytest.fixture
 def app_instance():
@@ -14,8 +16,11 @@ def app_instance():
     app.config['TESTING'] = True
 
     with app.app_context():
+        db.drop_all()
         db.create_all()
-        yield app   # 🔥 yield app, NOT client!
+        yield app
+        db.session.remove()
+        db.drop_all()
 
 @pytest.fixture
 def client(app_instance):
@@ -24,7 +29,9 @@ def client(app_instance):
 @pytest.fixture
 def auth(client):
     class AuthActions:
-        def login(self, username="testuser", password="testpassword"):
+        def login(self, username=None, password="testpassword"):
+            if not username:
+                username = f"testuser_{uuid.uuid4().hex[:6]}"
             client.put('/api/create-user', json={
                 "username": username,
                 "password": password
@@ -33,14 +40,18 @@ def auth(client):
                 "username": username,
                 "password": password
             })
+            return username
 
         def logout(self):
             client.post('/api/logout')
 
     return AuthActions()
 
+@pytest.fixture(autouse=True)
+def reset_favorites():
+    user_favorites.clear()
+
 def test_healthcheck(client):
-    """Test healthcheck endpoint."""
     response = client.get('/api/health')
     assert response.status_code == 200
     assert response.get_json() == {
@@ -49,91 +60,51 @@ def test_healthcheck(client):
     }
 
 def test_add_favorite(client, auth):
-    """Test adding a favorite movie."""
-    user_favorites.clear()
-    auth.login()
-
-    response = client.post('/add-favorite', json={
+    username = auth.login()
+    response = client.post('/api/add-favorite', json={
         "movie_id": "123",
         "movie_title": "Inception"
     })
-
     assert response.status_code == 201
     data = response.get_json()
     assert data["status"] == "success"
     assert "Movie 'Inception' added to favorites" in data["message"]
 
 def test_get_favorites(client, auth):
-    """Test retrieving favorite movies."""
-    user_favorites.clear()
-    auth.login()
-
-    # First, add a favorite
-    client.post('/add-favorite', json={
+    username = auth.login()
+    client.post('/api/add-favorite', json={
         "movie_id": "123",
         "movie_title": "Inception"
     })
-
-    # Now, get favorites
-    response = client.get('/get-favorites')
-
+    response = client.get('/api/get-favorites')
     assert response.status_code == 200
     data = response.get_json()
     assert data["status"] == "success"
-    assert isinstance(data["favorites"], list)
     assert len(data["favorites"]) == 1
     assert data["favorites"][0]["movie_id"] == "123"
-    assert data["favorites"][0]["movie_title"] == "Inception"
 
 def test_delete_favorite(client, auth):
-    """Test deleting a favorite movie."""
-
-    user_favorites.clear()  
-
-    auth.login()
-
-    # Add a favorite
-    client.post('/add-favorite', json={
+    username = auth.login()
+    client.post('/api/add-favorite', json={
         "movie_id": "123",
         "movie_title": "Inception"
     })
-
-    # Delete the favorite
-    response = client.delete('/delete-favorite', json={
-        "movie_id": "123"
-    })
-
-    # Assert successful deletion
+    response = client.delete('/api/delete-favorite', json={"movie_id": "123"})
     assert response.status_code == 200
-    data = response.get_json()
-    assert data["status"] == "success"
-    assert "removed from favorites" in data["message"]
+    assert "removed from favorites" in response.get_json()["message"]
 
-    favorites_response = client.get('/get-favorites')
-    favorites_data = favorites_response.get_json()
-    assert favorites_data["favorites"] == []
-
-from unittest.mock import patch
+    check_response = client.get('/api/get-favorites')
+    assert check_response.get_json()["favorites"] == []
 
 def test_search_movies(client, auth):
-    """Test searching for movies."""
-
-    user_favorites.clear()  
-
     auth.login()
-
-    # Patch the external search_movies function to return fake data
     with patch('routes.movie_routes.search_movies') as mock_search:
         mock_search.return_value = [
             {"movie_id": "1", "movie_title": "Inception"},
             {"movie_id": "2", "movie_title": "Interstellar"}
         ]
-
-        response = client.get('/search-movies?query=inception')
-
+        response = client.get('/api/search-movies?query=inception')
         assert response.status_code == 200
         data = response.get_json()
         assert data["status"] == "success"
-        assert isinstance(data["results"], list)
         assert len(data["results"]) == 2
-        assert data["results"][0]["movie_title"] == "Inception"

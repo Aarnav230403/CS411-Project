@@ -1,9 +1,10 @@
+import uuid
 import logging
 import os
 import time
 from typing import List
 
-from catalog.models.movies_model import Movies
+from catalog.models.movie_model import Movies
 from catalog.utils.api_utils import get_random
 from catalog.utils.logger import configure_logger
 
