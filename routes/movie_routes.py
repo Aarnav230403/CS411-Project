@@ -4,7 +4,7 @@ from flask_login import login_required, current_user
 from catalog.utils.logger import configure_logger
 from catalog.utils.api_utils import search_movies
 
-movie_bp = Blueprint(f'movie_{uuid.uuid4().hex}', __name__)
+movie_bp = Blueprint("movie", __name__)
 user_favorites = {}  # This will reset per server start – good enough for demo/test purposes
 
 ##########################################################

@@ -33,9 +33,12 @@ def auth(client):
             """Log in with a unique user per test."""
             username = f"testuser_{uuid.uuid4().hex[:6]}"
             password = "testpassword"
+            pin_code = "0000"  # REQUIRED FIELD
+
             create_resp = client.put('/api/create-user', json={
                 "username": username,
-                "password": password
+                "password": password,
+                "pinCode": pin_code  # include required pinCode
             })
             assert create_resp.status_code in (200, 201)
 
@@ -44,12 +47,13 @@ def auth(client):
                 "password": password
             })
             assert login_resp.status_code == 200
-            return username  # return the username if needed later
+            return username
 
         def logout(self):
             return client.post('/api/logout')
 
     return AuthActions()
+
 
 
 def test_healthcheck(client):

@@ -16,6 +16,23 @@ load_dotenv()
 from routes.movie_routes import movie_bp
 
 
+
+from dotenv import load_dotenv
+from flask import Flask, jsonify, make_response, Response, request
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+
+from config import ProductionConfig
+
+from catalog.db import db
+from catalog.models.movie_model import Movies
+from catalog.models.catalog_model import CatalogModel
+from catalog.models.user_model import Users
+from catalog.utils.logger import configure_logger
+
+load_dotenv()
+
+from routes.movie_routes import movie_bp
+
 def create_app(config_class=ProductionConfig) -> Flask:
     """Create a Flask application with the specified configuration.
 
@@ -30,7 +47,6 @@ def create_app(config_class=ProductionConfig) -> Flask:
     configure_logger(app.logger)
 
     app.config.from_object(config_class)
-
 
     # Initialize database
     db.init_app(app)
@@ -68,12 +84,18 @@ def create_app(config_class=ProductionConfig) -> Flask:
             'status': 'success',
             'message': 'Service is running'
         }), 200)
+    
+
+    if __name__ == '__main__':
+        app = create_app()
+        app.run(debug=True)
+
 
     ##########################################################
     #
     # User Management
     #
-    #########################################################
+    ##########################################################
 
     @app.route('/api/create-user', methods=['PUT'])
     def create_user() -> Response:
@@ -82,26 +104,35 @@ def create_app(config_class=ProductionConfig) -> Flask:
         Expected JSON Input:
             - username (str): The desired username.
             - password (str): The desired password.
+            - pinCode (str): A 4-digit pincode for added verification.
 
         Returns:
             JSON response indicating the success of the user creation.
 
         Raises:
-            400 error if the username or password is missing.
+            400 error if any required field is missing or invalid.
             500 error if there is an issue creating the user in the database.
         """
         try:
             data = request.get_json()
             username = data.get("username")
             password = data.get("password")
+            pin_code = data.get("pinCode")
 
-            if not username or not password:
+            if not username or not password or not pin_code:
                 return make_response(jsonify({
                     "status": "error",
-                    "message": "Username and password are required"
+                    "message": "Username, password, and pinCode are required"
                 }), 400)
 
-            Users.create_user(username, password)
+            if not pin_code.isdigit() or len(pin_code) != 4:
+                return make_response(jsonify({
+                    "status": "error",
+                    "message": "pinCode must be a 4-digit number"
+                }), 400)
+
+            Users.create_user(username, password, pin_code)
+
             return make_response(jsonify({
                 "status": "success",
                 "message": f"User '{username}' created successfully"
@@ -119,6 +150,7 @@ def create_app(config_class=ProductionConfig) -> Flask:
                 "message": "An internal error occurred while creating user",
                 "details": str(e)
             }), 500)
+
 
     @app.route('/api/login', methods=['POST'])
     def login() -> Response:

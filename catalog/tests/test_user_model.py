@@ -18,7 +18,7 @@ def clean_users_table(session):
 def test_create_user(session):
     username = f"testuser_{uuid.uuid4().hex[:6]}"
     password = "securepassword123"
-    Users.create_user(username=username, password=password)
+    Users.create_user(username=username, password=password, pin_code="0000")
     user = session.query(Users).filter_by(username=username).first()
     assert user is not None
     assert user.username == username
@@ -28,9 +28,9 @@ def test_create_user(session):
 def test_create_duplicate_user(session):
     username = f"duplicate_{uuid.uuid4().hex[:6]}"
     password = "securepassword123"
-    Users.create_user(username=username, password=password)
+    Users.create_user(username=username, password=password, pin_code="0000")
     with pytest.raises(ValueError, match=f"User with username '{username}' already exists"):
-        Users.create_user(username=username, password=password)
+        Users.create_user(username=username, password=password, pin_code="0000")
 
 ##########################################################
 # User Authentication
@@ -39,12 +39,12 @@ def test_create_duplicate_user(session):
 def test_check_password_correct(session):
     username = f"testuser_{uuid.uuid4().hex[:6]}"
     password = "securepassword123"
-    Users.create_user(username=username, password=password)
+    Users.create_user(username=username, password=password, pin_code="0000")
     assert Users.check_password(username, password) is True
 
 def test_check_password_incorrect(session):
     username = f"testuser_{uuid.uuid4().hex[:6]}"
-    Users.create_user(username=username, password="securepassword123")
+    Users.create_user(username=username, password="securepassword123", pin_code="0000")
     assert Users.check_password(username, "wrongpassword") is False
 
 def test_check_password_user_not_found(session):
@@ -57,7 +57,7 @@ def test_check_password_user_not_found(session):
 
 def test_update_password(session):
     username = f"testuser_{uuid.uuid4().hex[:6]}"
-    Users.create_user(username=username, password="oldpassword")
+    Users.create_user(username=username, password="oldpassword", pin_code="0000")
     Users.update_password(username, "newpassword456")
     assert Users.check_password(username, "newpassword456") is True
 
@@ -71,7 +71,7 @@ def test_update_password_user_not_found(session):
 
 def test_delete_user(session):
     username = f"testuser_{uuid.uuid4().hex[:6]}"
-    Users.create_user(username=username, password="password")
+    Users.create_user(username=username, password="password", pin_code="0000")
     Users.delete_user(username)
     user = session.query(Users).filter_by(username=username).first()
     assert user is None
@@ -86,7 +86,7 @@ def test_delete_user_not_found(session):
 
 def test_get_id_by_username(session):
     username = f"testuser_{uuid.uuid4().hex[:6]}"
-    Users.create_user(username=username, password="password")
+    Users.create_user(username=username, password="password", pin_code="0000")
     user_id = Users.get_id_by_username(username)
     user = session.query(Users).filter_by(username=username).first()
     assert user is not None
